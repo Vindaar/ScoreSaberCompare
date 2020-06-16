@@ -94,7 +94,7 @@ proc hash(s: SongDiffIdent): Hash =
 proc `$`(diff: Difficulty): kstring =
   case diff
   of dkEasy: "Easy"
-  of dkMedium: "Medium"
+  of dkNormal: "Normal"
   of dkHard: "Hard"
   of dkExpert: "Expert"
   of dkExpertPlus: "Expert+"
@@ -102,7 +102,7 @@ proc `$`(diff: Difficulty): kstring =
 proc color(diff: Difficulty): kstring =
   case diff
   of dkEasy: "#00BF7D"
-  of dkMedium: "#A2A500"
+  of dkNormal: "#A2A500"
   of dkHard: "#00AFF6"
   of dkExpert: "#F7766C"
   of dkExpertPlus: "#E76BF2"
