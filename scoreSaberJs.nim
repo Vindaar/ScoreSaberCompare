@@ -79,6 +79,8 @@ const Roberto = "76561199064998839"
 const Basti = "76561197972227588"
 
 var firstDrawDone = false
+var toDelete = false
+
 proc hash(s: SongDiffIdent): Hash =
   result = hash(s.id)
   result = result !& hash($s.diff)
@@ -159,14 +161,16 @@ proc main =
              onClick = onClickProc):
         text caption
 
-  proc postRender() =
-    discard
-
   proc update(ev: Event, n: VNode) =
     getPlayer(Roberto, playerState.rob)
     getPlayer(Basti, playerState.basti)
     getAllScores(Basti, playerState.basti)
     getAllScores(Roberto, playerState.rob)
+    toDelete = not toDelete
+
+  proc deleteState(ev: Event, n: VNode) =
+    playerState = PlayerState()
+    toDelete = not toDelete
 
   proc showAllSongs(ev: Event, n: VNode) =
     pageState.mode = mkAll
@@ -247,8 +251,12 @@ proc main =
     result = buildHtml(tdiv):
       h1(text "ScoreSaberCompare")
 
-      button(class = "press me", onclick = update):
-        text "Update data from ScoreSaber.com"
+      if not toDelete:
+        button(class = "press me", onclick = update):
+          text "Update data from ScoreSaber.com"
+      else:
+        button(class = "press me", onclick = deleteState):
+          text "Delete current data"
 
       button(class = "press me", onclick = showAllSongs):
         text "Show all songs"
@@ -260,9 +268,9 @@ proc main =
       of mkAll: renderAllSongs()
       of mkCommon: renderCommonSongs()
 
-      firstDrawDone = true
+    firstDrawDone = true
 
-  setRenderer render, "ROOT", postRender
+  setRenderer render, "ROOT"
 
 when isMainModule:
   main()
