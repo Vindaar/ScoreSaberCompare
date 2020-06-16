@@ -1,0 +1,10 @@
+* ScoreSaberCompare
+
+A pretty ugly little tool for my best buddy and me to compare Beat
+Saber scores from
+
+[[https://scoresaber.com]]
+
+with one another.
+
+Currently everything is hardcoded and rather ugly. :) :) :)
