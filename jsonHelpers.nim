@@ -18,8 +18,8 @@ proc pretty*(x: JsonNode): cstring =
 proc parseJson*(s: kstring): JsonNode =
   result = % parseJsonToJs(s)
 
-proc parseEnum*[T: enum](s: cstring, default: T): T =
-  result = strutils.parseEnum[T]($s, default)
+proc parseEnum*[T: enum](s: cstring): T =
+  result = strutils.parseEnum[T]($s)
 
 #proc parseFloat*(s: kstring): float =
 #  result = ($s).parseFloat
@@ -52,7 +52,10 @@ proc fromJson*[T: object](x: var T, n: JsonNode) =
   x = fromJson(n, T)
 
 proc fromJson*[T: enum](x: var T, n: JsonNode) =
-  x = parseEnum[T](n.getStr, default = T(0))
+  x = parseEnum[T](n.getStr)
+
+proc fromJson*[T: bool](x: var T, n: JsonNode) =
+  x = if n.getStr == "true": true else: false
 
 proc fromJson*[T: int](x: var T, n: JsonNode) =
   x = n.getNum
@@ -72,7 +75,10 @@ proc fromJson*(node: JsonNode, dtype: typedesc): dtype =
   ## currently only supports sequence types!
   when dtype is object:
     for name, sym in result.fieldPairs:
-      fromJson(sym, node[name])
+      when dtype is Score and name == "time":
+        discard
+      else:
+        fromJson(sym, node[name])
   else:
     result.fromJson(node)
 

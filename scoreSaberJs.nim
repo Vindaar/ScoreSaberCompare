@@ -1,4 +1,4 @@
-import uri, strutils, sequtils, strformat, os, asyncjs, math, sets, hashes
+import uri, strutils, sequtils, strformat, os, asyncjs, math, sets, hashes, times, algorithm
 import ajax, dom, sugar, jsbind
 import jsffi except `&`
 include karax / prelude
@@ -53,6 +53,8 @@ type
     rank: int
     diff: Difficulty
     timeset: kstring
+    time: Time # will be set after JsonNode is parsed!
+
 
   Player = object
     info: PlayerInfo
@@ -141,7 +143,10 @@ proc main =
       let data = httpRequest.responseText
       let dataJson = parseJson data
       for x in dataJson["scores"]:
-        scores.add fromJson(x, Score)
+        var curScore = fromJson(x, Score)
+        # parse time
+        curScore.time = parseTime($curScore.timeset, "YYYY-MM-dd'T'HH:mm:ss'.000Z'", utc())
+        scores.add curScore
 
   proc getAllScores(id: string, player: var Player) =
     for idx in countup(1, ceil(player.scoreStats.totalPlayCount.float / 8).int):
@@ -188,6 +193,8 @@ proc main =
                    style = style(StyleAttr.color, color(songs[i].diff)))
         br()
         span(text &"Rank: {songs[i].rank}")
+        span(text &"\tDate: {$songs[i].time}",
+                   style = style(StyleAttr.cssFloat, "right"))
         br()
         br()
 
