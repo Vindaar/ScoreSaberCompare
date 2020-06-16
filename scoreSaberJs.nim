@@ -29,6 +29,17 @@ type
     totalPlayCount: int
     rankedPlayCount: float
 
+  Difficulty = enum
+    dkEasy = "_Easy_SoloStandard"
+    dkMedium = "_Medium_SoloStandard"
+    dkHard = "_Hard_SoloStandard"
+    dkExpert = "_Expert_SoloStandard"
+    dkExpertPlus = "_ExpertPlus_SoloStandard"
+
+  SongDiffIdent = object
+    id: kstring
+    diff: Difficulty
+
   Score = object
     id: kstring
     leaderboardId: int
@@ -40,6 +51,8 @@ type
     songAuthorName: kstring
     levelAuthorName: kstring
     rank: int
+    diff: Difficulty
+    timeset: kstring
 
   Player = object
     info: PlayerInfo
@@ -53,12 +66,13 @@ type
   ModeKind = enum
     mkCommon, mkAll
 
-  PageState = object
-    mode: ModeKind
-
   OrderPath = enum
     opRecent = "recent"
     opTop = "top"
+
+  PageState = object
+    mode: ModeKind
+    sortOrder: OrderPath
 
 const host = r"https://new.scoresaber.com/api/"
 const Roberto = "76561199064998839"
