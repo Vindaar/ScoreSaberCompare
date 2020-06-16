@@ -51,6 +51,9 @@ proc fromJson*(node: JsonNode, dtype: typedesc): dtype
 proc fromJson*[T: object](x: var T, n: JsonNode) =
   x = fromJson(n, T)
 
+proc fromJson*[T: enum](x: var T, n: JsonNode) =
+  x = parseEnum[T](n.getStr, default = T(0))
+
 proc fromJson*[T: int](x: var T, n: JsonNode) =
   x = n.getNum
 
