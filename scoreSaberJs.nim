@@ -92,6 +92,13 @@ proc `$`(diff: Difficulty): kstring =
   of dkExpert: "Expert"
   of dkExpertPlus: "Expert+"
 
+proc color(diff: Difficulty): kstring =
+  case diff
+  of dkEasy: "#00BF7D"
+  of dkMedium: "#A2A500"
+  of dkHard: "#00AFF6"
+  of dkExpert: "#F7766C"
+  of dkExpertPlus: "#E76BF2"
 
 template makeRequest(url: cstring, body: untyped): untyped =
   var httpRequest {.inject.} = newXMLHttpRequest()
@@ -173,6 +180,8 @@ proc main =
     result = buildHtml(tdiv):
       for i in 0 ..< songs.len:
         span(text &"Song: {songs[i].songAuthorName} - {songs[i].name}")
+        span(text &" {$songs[i].diff}",
+                   style = style(StyleAttr.color, color(songs[i].diff)))
         br()
         span(text &"Rank: {songs[i].rank}")
         br()
