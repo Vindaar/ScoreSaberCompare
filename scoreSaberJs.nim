@@ -182,14 +182,14 @@ proc main =
     result = buildHtml(tdiv):
       tdiv(class = "split left"):
         p:
-          span(text "Roberto # scores:: ")
+          span(text "Roberto # scores: ")
           span(text($playerState.rob.scores.len))
         p:
           renderSongs(playerState.rob, playerState.rob.scores)
 
       tdiv(class = "split right"):
         p:
-          span(text "Basti # scores:: ")
+          span(text "Basti # scores: ")
           span(text($playerState.basti.scores.len))
         p:
           renderSongs(playerState.basti, playerState.basti.scores)
@@ -222,14 +222,14 @@ proc main =
     result = buildHtml(tdiv):
       tdiv(class = "split left"):
         p:
-          span(text "Roberto # scores:: ")
+          span(text "Roberto # scores: ")
           span(text($playerState.rob.scores.len))
         p:
           renderSongs(playerState.rob, robSongs)
 
       tdiv(class = "split right"):
         p:
-          span(text "Basti # scores:: ")
+          span(text "Basti # scores: ")
           span(text($playerState.basti.scores.len))
         p:
           renderSongs(playerState.basti, bastiSongs)
