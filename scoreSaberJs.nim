@@ -1,4 +1,4 @@
-import uri, strutils, sequtils, strformat, os, asyncjs, math, sets
+import uri, strutils, sequtils, strformat, os, asyncjs, math, sets, hashes
 import ajax, dom, sugar, jsbind
 import jsffi except `&`
 include karax / prelude
@@ -79,6 +79,19 @@ const Roberto = "76561199064998839"
 const Basti = "76561197972227588"
 
 var firstDrawDone = false
+proc hash(s: SongDiffIdent): Hash =
+  result = hash(s.id)
+  result = result !& hash($s.diff)
+  result = !$result
+
+proc `$`(diff: Difficulty): kstring =
+  case diff
+  of dkEasy: "Easy"
+  of dkMedium: "Medium"
+  of dkHard: "Hard"
+  of dkExpert: "Expert"
+  of dkExpertPlus: "Expert+"
+
 
 template makeRequest(url: cstring, body: untyped): untyped =
   var httpRequest {.inject.} = newXMLHttpRequest()
@@ -181,21 +194,30 @@ proc main =
         p:
           renderSongs(playerState.basti, playerState.basti.scores)
 
-  proc findSong(songs: seq[Score], id: kstring): Score =
+  proc toSongDiff(s: Score): SongDiffIdent =
+    SongDiffIdent(id: s.id, diff: s.diff)
+
+  proc toSongDiff(s: seq[Score]): seq[SongDiffIdent] =
+    result = s.mapIt(it.toSongDiff)
+
+  proc findSong(songs: seq[Score], s: Score): Score =
     ## returns the index of song corresponding to `id` in `songs`
-    for i, s in songs:
-      if s.id == id:
-        return s
+    for i, el in songs:
+      if el.toSongDiff == s.toSongDiff:
+        return el
 
   proc renderCommonSongs(): VNode =
     # find all common songs
-    let bastiSet = playerState.basti.scores.mapIt(it.id).toSet
-    let robSet = playerState.rob.scores.mapIt(it.id).toSet
+    let bastiSet = playerState.basti.scores.toSongDiff.toSet
+    let robSet = playerState.rob.scores.toSongDiff.toSet
     let common = bastiSet * robSet
-    let robSongs = playerState.rob.scores.filterIt(it.id in common)
+    let robSongs = playerState.rob.scores.filterIt(
+      SongDiffIdent(id: it.id,
+                    diff: it.diff) in common
+    )
     var bastiSongs: seq[Score]
     for r in robSongs:
-      bastiSongs.add findSong(playerState.basti.scores, r.id)
+      bastiSongs.add findSong(playerState.basti.scores, r)
 
     result = buildHtml(tdiv):
       tdiv(class = "split left"):
