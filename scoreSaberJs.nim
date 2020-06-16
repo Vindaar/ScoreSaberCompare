@@ -1,5 +1,4 @@
 import uri, strutils, sequtils, strformat, os, asyncjs, math, sets
-# import httpclient
 import ajax, dom, sugar, jsbind
 import jsffi except `&`
 include karax / prelude
@@ -65,11 +64,6 @@ const host = r"https://new.scoresaber.com/api/"
 const Roberto = "76561199064998839"
 const Basti = "76561197972227588"
 
-#proc getPlayer(client: HttpClient, id: int64): PlayerInfo =
-#  let pidFull = &"player/{id}/full"
-#  let url = host & pidFull
-#  echo client.getContent(url)
-
 var firstDrawDone = false
 
 template makeRequest(url: cstring, body: untyped): untyped =
@@ -97,7 +91,6 @@ proc main =
   proc getPlayer(id: string, player: var Player) =
     let pidFull = &"player/{id}/full"
     let url = host & pidFull
-    #echo client.getContent(url)
     makeRequest(url):
       let data = httpRequest.responseText
       let dataJson = parseJson data
@@ -161,7 +154,6 @@ proc main =
   proc renderAllSongs(): VNode =
     result = buildHtml(tdiv):
       tdiv(class = "split left"):
-        #  span(text($playerState.rob))
         p:
           span(text "Roberto # scores:: ")
           span(text($playerState.rob.scores.len))
@@ -200,7 +192,7 @@ proc main =
           renderSongs(playerState.rob, robSongs)
 
       tdiv(class = "split right"):
-cd         p:
+        p:
           span(text "Basti # scores:: ")
           span(text($playerState.basti.scores.len))
         p:
@@ -226,15 +218,6 @@ cd         p:
       firstDrawDone = true
 
   setRenderer render, "ROOT", postRender
-
-when isMainModule:
-  main()
-
-#var client = newHttpClient()
-#discard client.getPlayer(Roberto)
-#var xmlHttp = newXMLHTTPRequest()
-#discard getPlayer(Roberto)
-#discard getPlayer(Roberto)
 
 when isMainModule:
   main()
