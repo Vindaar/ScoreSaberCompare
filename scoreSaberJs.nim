@@ -57,13 +57,14 @@ type
 
 
   Player = object
+    name: kstring
     info: PlayerInfo
     scoreStats: ScoreStats
     scores: seq[Score]
 
   PlayerState = object
-    rob: Player
-    basti: Player
+    numPlayers: int
+    players: seq[Player]
 
   ModeKind = enum
     mkCommon, mkAll
@@ -74,7 +75,9 @@ type
 
   PageState = object
     mode: ModeKind
-    sortOrder: OrderPath
+    orderKind: OrderPath
+    sortOrder: SortOrder
+    recentBy: int # index of player that decides recent played order
 
 const host = r"https://new.scoresaber.com/api/"
 const Roberto = "76561199064998839"
@@ -104,6 +107,18 @@ proc color(diff: Difficulty): kstring =
   of dkExpert: "#F7766C"
   of dkExpertPlus: "#E76BF2"
 
+proc initPlayers(num = 2): PlayerState =
+  result = PlayerState(numPlayers: num)
+  result.players.add Player(name: "Roberto")
+  result.players.add Player(name: "Basti")
+
+proc initPageState(mode = mkAll, orderKind = opRecent, recentBy = 0,
+                   sortOrder = SortOrder.Descending): PageState =
+  result = PageState(mode: mode,
+                     orderKind: orderKind,
+                     sortOrder: sortOrder,
+                     recentBy: recentBy)
+
 template makeRequest(url: cstring, body: untyped): untyped =
   var httpRequest {.inject.} = newXMLHttpRequest()
 
@@ -125,7 +140,14 @@ template makeRequest(url: cstring, body: untyped): untyped =
   httpRequest.open("GET", url)
   httpRequest.send()
 
+template main(p: PlayerState): untyped {.dirty.} = p.players[pageState.recentBy]
+template other(p: PlayerState): untyped {.dirty.} = p.players[^(pageState.recentBy + 1)]
+const Names = @["Roberto", "Basti"]
+
 proc main =
+  var playerState = initPlayers()
+  var pageState = initPageState()
+
   proc getPlayer(id: string, player: var Player) =
     let pidFull = &"player/{id}/full"
     let url = host & pidFull
@@ -134,6 +156,21 @@ proc main =
       let dataJson = parseJson data
       player.info = fromJson(dataJson["playerInfo"], PlayerInfo)
       player.scoreStats = fromJson(dataJson["scoreStats"], ScoreStats)
+
+  getPlayer(Roberto, playerState.main)
+  getPlayer(Basti, playerState.other)
+
+  proc renderSelect(idx: kstring,
+                    names: seq[kstring],
+                    onChangeProc: (e: Event, n: VNode) -> void): VNode =
+    result = buildHtml:
+      select(id = idx,
+             onChange = onChangeProc):
+        for i, xy in names:
+          option(id = $i,
+                 value = xy):
+            text xy
+    redraw()
 
   proc getScore(id: string, scores: var seq[Score], orderPath: OrderPath = opRecent,
                 offset: int = 1) =
@@ -152,12 +189,6 @@ proc main =
     for idx in countup(1, ceil(player.scoreStats.totalPlayCount.float / 8).int):
       getScore(id, player.scores, offset = idx)
 
-  var playerState = PlayerState()
-  var pageState = PageState(mode: mkAll)
-
-  getPlayer(Roberto, playerState.rob)
-  getPlayer(Basti, playerState.basti)
-
   proc renderButton(caption: string,
                     class = "",
                     onClickProc: () -> void): VNode =
@@ -167,14 +198,14 @@ proc main =
         text caption
 
   proc update(ev: Event, n: VNode) =
-    getPlayer(Roberto, playerState.rob)
-    getPlayer(Basti, playerState.basti)
-    getAllScores(Basti, playerState.basti)
-    getAllScores(Roberto, playerState.rob)
+    getPlayer(Roberto, playerState.main)
+    getPlayer(Basti, playerState.other)
+    getAllScores(Basti, playerState.other)
+    getAllScores(Roberto, playerState.main)
     toDelete = not toDelete
 
   proc deleteState(ev: Event, n: VNode) =
-    playerState = PlayerState()
+    playerState = initPlayers()
     toDelete = not toDelete
 
   proc showAllSongs(ev: Event, n: VNode) =
@@ -198,22 +229,6 @@ proc main =
         br()
         br()
 
-  proc renderAllSongs(): VNode =
-    result = buildHtml(tdiv):
-      tdiv(class = "split left"):
-        p:
-          span(text "Roberto # scores: ")
-          span(text($playerState.rob.scores.len))
-        p:
-          renderSongs(playerState.rob, playerState.rob.scores)
-
-      tdiv(class = "split right"):
-        p:
-          span(text "Basti # scores: ")
-          span(text($playerState.basti.scores.len))
-        p:
-          renderSongs(playerState.basti, playerState.basti.scores)
-
   proc toSongDiff(s: Score): SongDiffIdent =
     SongDiffIdent(id: s.id, diff: s.diff)
 
@@ -226,33 +241,49 @@ proc main =
       if el.toSongDiff == s.toSongDiff:
         return el
 
-  proc renderCommonSongs(): VNode =
-    # find all common songs
-    let bastiSet = playerState.basti.scores.toSongDiff.toSet
-    let robSet = playerState.rob.scores.toSongDiff.toSet
-    let common = bastiSet * robSet
-    let robSongs = playerState.rob.scores.filterIt(
-      SongDiffIdent(id: it.id,
-                    diff: it.diff) in common
-    )
-    var bastiSongs: seq[Score]
-    for r in robSongs:
-      bastiSongs.add findSong(playerState.basti.scores, r)
+  proc renderSongSelection(): VNode =
+    var mainSongs: seq[Score]
+    var otherSongs: seq[Score]
+    case pageState.mode
+    of mkCommon:
+       # find all common songs
+       doAssert playerState.numPlayers == 2, "Code after this only works for 2 players right now!"
+       let p1Set = playerState.players[0].scores.toSongDiff.toSet
+       let p2Set = playerState.players[1].scores.toSongDiff.toSet
+       let common = p1Set * p2Set
+
+       mainSongs = playerState.players[pageState.recentBy].scores.filterIt(
+         SongDiffIdent(id: it.id,
+                       diff: it.diff) in common
+       ).sorted(cmp = (proc(a, b: Score): int =
+                           result = system.cmp(a.time, b.time)),
+                order = pageState.sortOrder)
+       for r in mainSongs:
+         otherSongs.add findSong(playerState.players[^(pageState.recentBy + 1)].scores, r)
+    of mkAll:
+       mainSongs = playerState.main.scores.sorted(
+         cmp = (proc(a, b: Score): int =
+                    result = system.cmp(a.time, b.time)),
+         order = pageState.sortOrder)
+       otherSongs = playerState.other.scores.sorted(
+         cmp = (proc(a, b: Score): int =
+                    result = system.cmp(a.time, b.time)),
+         order = pageState.sortOrder)
 
     result = buildHtml(tdiv):
       tdiv(class = "split left"):
         p:
-          span(text "Roberto # scores: ")
-          span(text($playerState.rob.scores.len))
+          span(text &"{Names[pageState.recentBy]} # scores: ")
+          span(text($playerState.main.scores.len))
         p:
-          renderSongs(playerState.rob, robSongs)
+          renderSongs(playerState.main, mainSongs)
 
       tdiv(class = "split right"):
         p:
-          span(text "Basti # scores: ")
-          span(text($playerState.basti.scores.len))
+          span(text &"{Names[^(pageState.recentBy + 1)]} # scores: ")
+          span(text($playerState.other.scores.len))
         p:
-          renderSongs(playerState.basti, bastiSongs)
+          renderSongs(playerState.other, otherSongs)
 
   proc render(): VNode =
     result = buildHtml(tdiv):
@@ -271,9 +302,29 @@ proc main =
       button(class = "press me", onclick = showCommonSongs):
         text "Show common songs"
 
-      case pageState.mode
-      of mkAll: renderAllSongs()
-      of mkCommon: renderCommonSongs()
+      renderSelect(
+        idx = "0",
+        names = Names.mapIt(it.kstring),
+        onChangeProc = proc (e: Event, n: VNode) =
+                         pageState.recentBy =
+                           case $n.value
+                           of Names[0]: 0
+                           of Names[1]: 1
+                           else: 0
+      )
+
+      renderSelect(
+        idx = "1",
+        names = @["Ascending".kstring, "Descending".kstring],
+        onChangeProc = proc (e: Event, n: VNode) =
+                         pageState.sortOrder =
+                           case $n.value
+                           of "Ascending": SortOrder.Ascending
+                           of "Descending": SortOrder.Descending
+                           else: SortOrder.Descending
+      )
+
+      renderSongSelection()
 
     firstDrawDone = true
 
