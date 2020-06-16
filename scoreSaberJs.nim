@@ -31,7 +31,7 @@ type
 
   Difficulty = enum
     dkEasy = "_Easy_SoloStandard"
-    dkMedium = "_Medium_SoloStandard"
+    dkNormal = "_Normal_SoloStandard"
     dkHard = "_Hard_SoloStandard"
     dkExpert = "_Expert_SoloStandard"
     dkExpertPlus = "_ExpertPlus_SoloStandard"
