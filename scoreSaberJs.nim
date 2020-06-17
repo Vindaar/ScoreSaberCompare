@@ -218,16 +218,28 @@ proc main =
 
   proc renderSongs(p: Player, songs: seq[Score]): VNode =
     result = buildHtml(tdiv):
-      for i in 0 ..< songs.len:
-        span(text &"Song: {songs[i].songAuthorName} - {songs[i].name}")
-        span(text &" {$songs[i].diff}",
-                   style = style(StyleAttr.color, color(songs[i].diff)))
-        br()
-        span(text &"Rank: {songs[i].rank}")
-        span(text &"\tDate: {$songs[i].time}",
-                   style = style(StyleAttr.cssFloat, "right"))
-        br()
-        br()
+      table:
+        tr:
+          th(text "Rank")
+          th(text "Song / Difficulty")
+          th(text "Date")
+        for i in 0 ..< songs.len:
+          tr:
+            td:
+              text &"{songs[i].rank}"
+            td:
+              span(text &"{songs[i].songAuthorName} - {songs[i].name}")
+              span(text &" {$songs[i].diff}",
+                         style = style(StyleAttr.color, color(songs[i].diff)))
+            td:
+              span(class = "txtMono", text &"{$songs[i].time}")
+          tr:
+            td(text "")
+            td(class = "tdSmall"):
+              text("Score: ")
+              span(class = "txtMono", text(&"{$songs[i].score}"))
+            td(text "")
+
 
   proc toSongDiff(s: Score): SongDiffIdent =
     SongDiffIdent(id: s.id, diff: s.diff)
@@ -273,16 +285,16 @@ proc main =
     result = buildHtml(tdiv):
       tdiv(class = "split left"):
         p:
-          span(text &"{Names[pageState.recentBy]} # scores: ")
+          span(text &"{Names[pageState.recentBy]} total # songs played: ")
           span(text($playerState.main.scores.len))
-        p:
+        p(class = "songsPadding"):
           renderSongs(playerState.main, mainSongs)
 
       tdiv(class = "split right"):
         p:
-          span(text &"{Names[^(pageState.recentBy + 1)]} # scores: ")
+          span(text &"{Names[^(pageState.recentBy + 1)]} total # songs played: ")
           span(text($playerState.other.scores.len))
-        p:
+        p(class = "songsPadding"):
           renderSongs(playerState.other, otherSongs)
 
   proc render(): VNode =
