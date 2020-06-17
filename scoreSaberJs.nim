@@ -203,6 +203,8 @@ proc main =
 
   proc deleteState(ev: Event, n: VNode) =
     playerState = initPlayers()
+    getPlayer(Roberto, playerState.main)
+    getPlayer(Basti, playerState.other)
     toDelete = not toDelete
 
   proc showAllSongs(ev: Event, n: VNode) =
