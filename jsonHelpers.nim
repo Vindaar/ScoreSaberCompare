@@ -3,6 +3,17 @@ include karax / prelude
 import karax / kdom
 import karax / jjson
 
+type
+  ## NOTE: until 17/06/20 ~7pm the difficulties were given as strings
+  ##
+  Difficulty* = enum
+    dkEasy = 1 #"_Easy_SoloStandard"
+    dkNormal = 3# "_Normal_SoloStandard"
+    dkHard = 5 #"_Hard_SoloStandard"
+    dkExpert = 7 #"_Expert_SoloStandard"
+    dkExpertPlus = 9 #"_ExpertPlus_SoloStandard"
+
+
 proc parseJsonToJs(json: cstring): JsObject {.jsimportgWithName: "JSON.parse".}
 proc stringify*(value: JsObject | JsonNode,
                 replacer: JsObject,
@@ -18,8 +29,11 @@ proc pretty*(x: JsonNode): cstring =
 proc parseJson*(s: kstring): JsonNode =
   result = % parseJsonToJs(s)
 
-proc parseEnum*[T: enum](s: cstring): T =
+proc parseEnum*[T: enum](s: kstring): T =
   result = strutils.parseEnum[T]($s)
+
+proc parseEnum*[T: enum](s: kstring, default: T): T =
+  result = strutils.parseEnum[T]($s, default = default)
 
 #proc parseFloat*(s: kstring): float =
 #  result = ($s).parseFloat
@@ -46,13 +60,16 @@ macro getInnerType*(TT: typed): untyped =
   result = quote do:
     `res`
 
+proc parseDifficulty*(x: var Difficulty, n: JsonNode) =
+  x = Difficulty(n.getNum)
+
 proc fromJson*(node: JsonNode, dtype: typedesc): dtype
 
 proc fromJson*[T: object](x: var T, n: JsonNode) =
   x = fromJson(n, T)
 
 proc fromJson*[T: enum](x: var T, n: JsonNode) =
-  x = parseEnum[T](n.getStr)
+  x = parseEnum[T](n.getStr, default = T(0))
 
 proc fromJson*[T: bool](x: var T, n: JsonNode) =
   x = if n.getStr == "true": true else: false
@@ -77,6 +94,8 @@ proc fromJson*(node: JsonNode, dtype: typedesc): dtype =
     for name, sym in result.fieldPairs:
       when dtype is Score and name == "time":
         discard
+      elif dtype is Score and name == "difficulty":
+        parseDifficulty(sym, node[name])
       else:
         fromJson(sym, node[name])
   else:

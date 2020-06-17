@@ -29,30 +29,27 @@ type
     totalPlayCount: int
     rankedPlayCount: float
 
-  Difficulty = enum
-    dkEasy = "_Easy_SoloStandard"
-    dkNormal = "_Normal_SoloStandard"
-    dkHard = "_Hard_SoloStandard"
-    dkExpert = "_Expert_SoloStandard"
-    dkExpertPlus = "_ExpertPlus_SoloStandard"
-
   SongDiffIdent = object
     id: kstring
     diff: Difficulty
 
   Score = object
-    id: kstring
+    ## NOTE: until 17/06/20 ~7pm the songHash was "id"
+    songHash: kstring
     leaderboardId: int
     score: float
     uScore: float
     playerId: int
-    name: kstring
+    ## NOTE: until 17/06/20 ~7pm the songName was "name"
+    songName: kstring
     songSubName: kstring
     songAuthorName: kstring
     levelAuthorName: kstring
     rank: int
-    diff: Difficulty
-    timeset: kstring
+    ## NOTE: until 17/06/20 ~7pm the difficulty was "diff"
+    difficulty: Difficulty
+    ## NOTE: until 17/06/20 ~7pm the timeSet was "timeset"
+    timeSet: kstring
     time: Time # will be set after JsonNode is parsed!
 
 
@@ -228,9 +225,9 @@ proc main =
             td:
               text &"{songs[i].rank}"
             td:
-              span(text &"{songs[i].songAuthorName} - {songs[i].name}")
-              span(text &" {$songs[i].diff}",
-                         style = style(StyleAttr.color, color(songs[i].diff)))
+              span(text &"{songs[i].songAuthorName} - {songs[i].songName}")
+              span(text &" {$songs[i].difficulty}",
+                         style = style(StyleAttr.color, color(songs[i].difficulty)))
             td:
               span(class = "txtMono", text &"{$songs[i].time}")
           tr:
@@ -242,7 +239,7 @@ proc main =
 
 
   proc toSongDiff(s: Score): SongDiffIdent =
-    SongDiffIdent(id: s.id, diff: s.diff)
+    SongDiffIdent(id: s.songHash, diff: s.difficulty)
 
   proc toSongDiff(s: seq[Score]): seq[SongDiffIdent] =
     result = s.mapIt(it.toSongDiff)
@@ -265,8 +262,8 @@ proc main =
        let common = p1Set * p2Set
 
        mainSongs = playerState.players[pageState.recentBy].scores.filterIt(
-         SongDiffIdent(id: it.id,
-                       diff: it.diff) in common
+         SongDiffIdent(id: it.songHash,
+                       diff: it.difficulty) in common
        ).sorted(cmp = (proc(a, b: Score): int =
                            result = system.cmp(a.time, b.time)),
                 order = pageState.sortOrder)
